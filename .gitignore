@@ -1,0 +1,5 @@
+build/
+.vscode/
+Scalar/
+imgui.ini
+*.zip
