@@ -112,16 +112,13 @@ void reshape(GLFWwindow *window, int w, int h){
 std::vector<unsigned char> data;
 Volume volume;
 
-// 用來記錄每個 surface 的 VAO 與頂點數量
 GLuint VAO1, VAO2;
 GLsizei vertCount1, vertCount2;
 
 
 void init_data(){
-    // 讀取資料並初始化兩個等值面
     read("Scalar/engine.raw", "Scalar/engine.inf", data);
 
-    // volume: isovalue = 128, 紅色
     volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID);
     volume.compute_gradient(1.0f, 255.0f);
     volume.compute_histogram2d(256, 256);
@@ -146,7 +143,6 @@ int main(int argc, char **argv){
     glfwSetWindowSizeCallback(window, reshape);
 
 
-    // 設定滑鼠回呼，並隱藏游標（捕捉滑鼠）
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -169,7 +165,6 @@ int main(int argc, char **argv){
     std::cout << "Renderer: " << renderer << std::endl;
     std::cout << "OpenGL version supported: " << version << std::endl;
 
-    // ImGui 初始化
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -177,21 +172,16 @@ int main(int argc, char **argv){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 400");
 
-    // 讀取資料並生成兩個 iso_surface
     init_data();
 
-    // 建立 shader
     int shaderProgram = set_shaders("shader/phong.vert", "shader/phong.frag");
 
-    // 模型矩陣（如有需要可再調整位置）
     glm::mat4 model = glm::mat4(1.0f);
 
-    // 光源 & 顏色
     glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
     int m = 256, k = 256;
-    // 渲染主迴圈
     while(!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -203,23 +193,19 @@ int main(int argc, char **argv){
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // ImGui 畫面
+        // ImGui 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
 
-        input_window(camera_pos, camera_front, volume, m, k); // 顯示 RGB Transfer Function 編輯器
-        histogram_window(volume); // 顯示 Histogram 編輯器
-        line_editor_winodw(); // 顯示 RGB Transfer Function 編輯器
-
+        input_window(camera_pos, camera_front, volume, m, k);        histogram_window(volume);
+        line_editor_winodw();
         glUseProgram(shaderProgram);
 
-        // 計算 view 與 projection 矩陣
         glm::mat4 view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float) width / height, 0.1f, 2000.0f);
 
-        // 傳送矩陣給 shader
         GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
         GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
         GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
@@ -242,10 +228,8 @@ int main(int argc, char **argv){
         glfwSwapBuffers(window);
     }
 
-    // 清理
     glDeleteVertexArrays(1, &VAO1);
     glDeleteVertexArrays(1, &VAO2);
-    // 如果你有另外存 VBO_pos, VBO_norm，要在這裡也一起刪除
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

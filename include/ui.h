@@ -15,22 +15,22 @@
 
 // 單一「通道」的折點
 struct ChannelPoint{
-    float intensity; // X 軸，範圍 [0, 255]
+    int intensity; // X 軸，範圍 [0, 255]
     float value;     // Y 軸，範圍 [0, 1]
 };
 
 // 三條線的控制點，全域或放在別處皆可
 static std::vector<ChannelPoint> redPoints = {
-    {0.0f, 0.0f},
-    {255.0f, 0.0f}
+    {0, 0.0f},
+    {255, 0.0f}
 };
 static std::vector<ChannelPoint> greenPoints = {
-    {0.0f, 0.0f},
-    {255.0f, 0.0f}
+    {0, 0.0f},
+    {255, 0.0f}
 };
 static std::vector<ChannelPoint> bluePoints = {
-    {0.0f, 0.0f},
-    {255.0f, 0.0f}
+    {0, 0.0f},
+    {255, 0.0f}
 };
 
 void line_editor_winodw();

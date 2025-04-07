@@ -17,8 +17,8 @@ void line_editor_winodw(){
     ImVec2 canvasSize(400, 250);
     // 建立 InvisibleButton 作為畫布
     ImGui::InvisibleButton("canvas", canvasSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-    ImVec2 canvasPos = ImGui::GetItemRectMin(); // 画布左上角
-    ImVec2 canvasEnd = ImGui::GetItemRectMax(); // 画布右下角
+    ImVec2 canvasPos = ImGui::GetItemRectMin();
+    ImVec2 canvasEnd = ImGui::GetItemRectMax();
     ImDrawList *drawList = ImGui::GetWindowDrawList();
 
     // 畫背景與網格
@@ -32,7 +32,7 @@ void line_editor_winodw(){
 
     // 幫助函式：將 (intensity, value) 轉換到畫布座標
     auto toCanvas = [&](float intensity, float val){
-        float x = canvasPos.x + (intensity / 255.0f) * canvasSize.x;
+        int x = canvasPos.x + (intensity / 255.0f) * canvasSize.x;
         float y = canvasPos.y + canvasSize.y - (val * canvasSize.y);
         return ImVec2(x, y);
     };
@@ -53,11 +53,9 @@ void line_editor_winodw(){
     // 排序 + 建立 polyline
     auto buildPolyline = [&](ChannelData &ch){
         auto &vec = *(ch.pts);
-        // 依 intensity 由小到大排序
         std::sort(vec.begin(), vec.end(), [](auto &a, auto &b){
             return a.intensity < b.intensity;
         });
-        // 轉成 ImVec2
         std::vector<ImVec2> linePts;
         linePts.reserve(vec.size());
         for(auto &p : vec){
@@ -144,7 +142,7 @@ void line_editor_winodw(){
                 else if(activeIndex == (int) pts.size() - 1){
                     newIntensity = 255.0f;
                 }
-                pts[activeIndex].intensity = newIntensity;
+                pts[activeIndex].intensity = int(newIntensity);
                 pts[activeIndex].value = newValue;
             }
         }
@@ -167,7 +165,7 @@ void line_editor_winodw(){
             float newValue = (canvasEnd.y - mousePos.y) / canvasSize.y;
             newIntensity = std::clamp(newIntensity, 0.0f, 255.0f);
             newValue = std::clamp(newValue, 0.0f, 1.0f);
-            pts.push_back({ newIntensity, newValue });
+            pts.push_back({ int(newIntensity), newValue });
         }
     }
 
@@ -181,6 +179,16 @@ void line_editor_winodw(){
             drawList->AddCircleFilled(pCanvas, pointRadius, col);
             // 若想加外框，可再加 AddCircle()
         }
+    }
+
+    if(ImGui::Button("Get Vector")){
+        for(auto i : redPoints)
+            std::cout << i.intensity << ' ' << i.value << std::endl;
+        for(auto i : greenPoints)
+            std::cout << i.intensity << ' ' << i.value << std::endl;
+        for(auto i : bluePoints)
+            std::cout << i.intensity << ' ' << i.value << std::endl;
+
     }
 
     // 保留空間，讓 ImGui 知道這裡有一塊 400x250 的區域
