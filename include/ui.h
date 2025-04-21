@@ -34,7 +34,7 @@ static std::vector<ChannelPoint> bluePoints = {
 };
 
 void line_editor_winodw();
-void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, int &m, int &k);
-void histogram_window(Volume &volume);
+void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size);
+void histogram_window(Volume &volume, int &cell_size);
 
 #endif // UI_H

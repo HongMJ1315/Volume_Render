@@ -1,7 +1,6 @@
 #include "ui.h"
 
-
-
+#define PIXEL_SIZE 1
 void line_editor_winodw(){
     // 建立一個視窗
     ImGui::Begin("RGB Transfer Function");
@@ -145,7 +144,7 @@ void line_editor_winodw(){
         }
     }
 
-    
+
     const float pointRadius = 4.0f;
     for(int c = 0; c < 3; c++){
         auto &pts = *(channels[c].pts);
@@ -171,27 +170,39 @@ void line_editor_winodw(){
     ImGui::End();
 }
 
-void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, int &m, int &k){
+void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size){
     ImGui::Begin("Input Window");
     ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camera_pos.x, camera_pos.y, camera_pos.z);
     ImGui::Text("Camera Front Position: (%.2f, %.2f, %.2f)", camera_front.x, camera_front.y, camera_front.z);
-    std::vector<float> d = volume.get_distribute();
+    std::vector<int> d = volume.get_distribute();
+    std::vector<float> fd;
+    for(auto i : d) fd.push_back(i);
     ImVec2 graph_size = ImVec2(0, 80);
-    ImGui::PlotHistogram("Density distribution", d.data(), d.size(), 0, nullptr, FLT_MAX, FLT_MAX, graph_size);
+    ImGui::PlotHistogram("Density distribution", fd.data(), fd.size(), 0, nullptr, FLT_MAX, FLT_MAX, graph_size);
     ImGui::InputInt("M", &m);
     ImGui::InputInt("K", &k);
     if(ImGui::Button("Compute Histogram2D")){
         volume.compute_histogram2d(m, k);
     }
+    ImGui::InputFloat("Gamma", &gamma);
+    ImGui::InputInt("Threadhold", &threadhold);
+    ImGui::InputInt("Cell Size", &cell_size);
+    if(ImGui::Button("Reset Data")){
+        volume = Volume(data, volume.length, volume.width, volume.height, gamma, threadhold);
+        m = volume.get_distribute().size() - 1;
+        volume.compute_gradient(1.0f, 255.0f);
+        volume.compute_histogram2d(m, k);
+    }
+
     ImGui::End();
 }
 
 
-void histogram_window(Volume &volume){
+void histogram_window(Volume &volume, int &cell){
     ImGui::Begin("Histogram2D Viewer");
     std::vector<std::vector<int>> histogram2D = volume.get_histogram2d();
 
-    const int cell_size = 1; 
+    const int cell_size = cell;
     const int M = histogram2D.size();
     const int K = histogram2D[0].size();
 
@@ -256,7 +267,7 @@ void histogram_window(Volume &volume){
         ImVec2 p_max = ImVec2(nxt_histogram_pos_y.x + cell_size * 5, p_min.y + cell_size);
         draw_list->AddRectFilled(p_min, p_max, color);
     }
-    
+
 
     ImGui::Dummy(ImVec2(M * cell_size, M * cell_size + 10));
 

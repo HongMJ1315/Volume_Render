@@ -40,9 +40,9 @@ float lastFrame = 0.0f;
 #define MOVE_SPEED 10.f
 #define ROTATE_SPEED 2.0f
 
-#define MODEL_LEN 149.0f
-#define MODEL_HEI 208.0f
-#define MODEL_WID 110.0f
+#define MODEL_LEN 256.0f
+#define MODEL_HEI 256.0f
+#define MODEL_WID 256.0f
 
 
 
@@ -117,9 +117,9 @@ GLsizei vertCount1, vertCount2;
 
 
 void init_data(){
-    read("Scalar/engine.raw", "Scalar/engine.inf", data);
+    read("Scalar/testing_engine.raw", "Scalar/testing_engine.inf", data);
 
-    volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID);
+    volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID, 0.5, 0);
     volume.compute_gradient(1.0f, 255.0f);
     volume.compute_histogram2d(256, 256);
 }
@@ -181,7 +181,11 @@ int main(int argc, char **argv){
     glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
-    int m = 256, k = 256;
+    int m = 255, k = 255;
+    int cell_size = 1;
+    float gamma = 0.5;
+    int threadhold = 1;
+    std::cout << "All done" << std::endl;
     while(!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -199,7 +203,8 @@ int main(int argc, char **argv){
         ImGui::NewFrame();
 
 
-        input_window(camera_pos, camera_front, volume, m, k);        histogram_window(volume);
+        input_window(camera_pos, camera_front, volume, data, m, k, threadhold, gamma, cell_size);
+        histogram_window(volume, cell_size);
         line_editor_winodw();
         glUseProgram(shaderProgram);
 
