@@ -12,7 +12,8 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
-
+#include <iostream>
+#include <fstream>      
 // 單一「通道」的折點
 struct ChannelPoint{
     int intensity; // X 軸，範圍 [0, 255]
@@ -33,7 +34,7 @@ static std::vector<ChannelPoint> bluePoints = {
     {255, 0.0f}
 };
 
-void line_editor_winodw();
+void line_editor_winodw(int max_density);
 void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size);
 void histogram_window(Volume &volume, int &cell_size);
 

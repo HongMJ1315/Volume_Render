@@ -205,7 +205,7 @@ int main(int argc, char **argv){
 
         input_window(camera_pos, camera_front, volume, data, m, k, threadhold, gamma, cell_size);
         histogram_window(volume, cell_size);
-        line_editor_winodw();
+        line_editor_winodw(volume.get_distribute().size());
         glUseProgram(shaderProgram);
 
         glm::mat4 view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);

@@ -1,7 +1,7 @@
 #include "ui.h"
 
 #define PIXEL_SIZE 1
-void line_editor_winodw(){
+void line_editor_winodw(int max_density){
     // 建立一個視窗
     ImGui::Begin("RGB Transfer Function");
 
@@ -155,15 +155,55 @@ void line_editor_winodw(){
         }
     }
 
+    // 按鈕：打印控制點 & 線性內插後的 TF
     if(ImGui::Button("Get Vector")){
-        for(auto i : redPoints)
-            std::cout << i.intensity << ' ' << i.value << std::endl;
-        for(auto i : greenPoints)
-            std::cout << i.intensity << ' ' << i.value << std::endl;
-        for(auto i : bluePoints)
-            std::cout << i.intensity << ' ' << i.value << std::endl;
+        auto processChannel = [&](const std::vector<ChannelPoint> &pts_in, const char *name){
+            std::ofstream ofs(std::string(name) + ".txt", std::ofstream::out);
 
+            // 1. 排序並確保 0 / 255 兩端點
+            std::vector<ChannelPoint> pts = pts_in;
+            std::sort(pts.begin(), pts.end(), [](auto &a, auto &b){
+                return a.intensity < b.intensity;
+            });
+            if(pts.empty() || pts.front().intensity != 0)
+                pts.insert(pts.begin(), { 0, pts.empty() ? 0.0f : pts.front().value });
+            if(pts.back().intensity != 255)
+                pts.push_back({ 255, pts.back().value });
+
+            // 2. 輸出原始折點
+            std::cout << name << " control points:\n";
+            for(auto &p : pts)
+                std::cout << "(" << p.intensity << "," << p.value << ") ";
+            std::cout << "\n";
+
+            // 3. 線性內插、並 scale 到 [0, max_density]
+            std::vector<int> tf(256);
+            int seg = 0;
+            for(int i = 0; i < 256; i++){
+                // 找當前段落 seg, seg+1 使得 intensity[seg] <= i <= intensity[seg+1]
+                while(seg + 1 < (int) pts.size() && i > pts[seg + 1].intensity)
+                    seg++;
+                int x0 = pts[seg].intensity, x1 = pts[seg + 1].intensity;
+                float y0 = pts[seg].value, y1 = pts[seg + 1].value;
+                float t = (x1 == x0) ? 0.0f : (float) (i - x0) / (float) (x1 - x0);
+                float v = (1.0f - t) * y0 + t * y1;
+                int   iv = static_cast<int>(std::round(v * max_density));
+                tf[i] = std::clamp(iv, 0, max_density);
+            }
+
+            // 4. 輸出整條 Transfer Function
+            std::cout << name << " TF (0～255 -> 0～" << max_density << "):\n";
+            ofs << max_density << std::endl;
+            for(int i = 0; i < 256; i++){
+                ofs << tf[i] << (i + 1 < 256 ? " " : "\n");
+            }
+        };
+
+        processChannel(redPoints, "Red");
+        processChannel(greenPoints, "Green");
+        processChannel(bluePoints, "Blue");
     }
+
 
     ImGui::Dummy(canvasSize);
 
