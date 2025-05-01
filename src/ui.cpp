@@ -157,58 +157,52 @@ void line_editor_winodw(int max_density, std::vector<float> &tf_r, std::vector<f
         }
     }
 
-    // 按鈕：打印控制點 & 線性內插後的 TF
-    if(ImGui::Button("Get Vector")){
-        auto processChannel = [&](const std::vector<ChannelPoint> &pts_in, const char *name){
-            std::ofstream ofs(std::string(name) + ".txt", std::ofstream::out);
 
-            // 1. 排序並確保 0 / 255 兩端點
-            std::vector<ChannelPoint> pts = pts_in;
-            std::sort(pts.begin(), pts.end(), [](auto &a, auto &b){
-                return a.intensity < b.intensity;
-            });
-            if(pts.empty() || pts.front().intensity != 0)
-                pts.insert(pts.begin(), { 0, pts.empty() ? 0.0f : pts.front().value });
-            if(pts.back().intensity != 255)
-                pts.push_back({ 255, pts.back().value });
+    // if(ImGui::Button("Get Vector")){
+    auto processChannel = [&](const std::vector<ChannelPoint> &pts_in, const char *name){
+        // std::ofstream ofs(std::string(name) + ".txt", std::ofstream::out);
 
-            // 2. 輸出原始折點
-            std::cout << name << " control points:\n";
-            for(auto &p : pts)
-                std::cout << "(" << p.intensity << "," << p.value << ") ";
-            std::cout << "\n";
+        // 1. 排序并确保 0 / 255 两端点
+        std::vector<ChannelPoint> pts = pts_in;
+        std::sort(pts.begin(), pts.end(), [](auto &a, auto &b){
+            return a.intensity < b.intensity;
+        });
+        if(pts.empty() || pts.front().intensity != 0)
+            pts.insert(pts.begin(), { 0, pts.empty() ? 0.0f : pts.front().value });
+        if(pts.back().intensity != 255)
+            pts.push_back({ 255, pts.back().value });
 
-            // 3. 線性內插、並 scale 到 [0, max_density]
-            std::vector<float> tf(max_density);
-            int seg = 0;
-            for(int i = 0; i < max_density; i++){
-                // 找當前段落 seg, seg+1 使得 intensity[seg] <= i <= intensity[seg+1]
-                while(seg + 1 < (int) pts.size() && i > pts[seg + 1].intensity)
-                    seg++;
-                int x0 = pts[seg].intensity, x1 = pts[seg + 1].intensity;
-                float y0 = pts[seg].value, y1 = pts[seg + 1].value;
-                float t = (x1 == x0) ? 0.0f : (float) (i - x0) / (float) (x1 - x0);
-                float v = (1.0f - t) * y0 + t * y1;
-                int   iv = static_cast<int>(std::round(v * max_density));
-                std::cout << x0 << " " << y0 << " " << t << " " << v << " " << iv << std::endl;
-                tf[i] = iv / 255;
-            }
+        // std::cout << name << " control points:\n";
+        // for(auto &p : pts)
+        //     std::cout << "(" << p.intensity << "," << p.value << ") ";
+        // std::cout << "\n";
 
-            // 4. 輸出整條 Transfer Function
-            std::cout << name << " TF (0～255 -> 0～" << max_density << "):\n";
-            ofs << max_density << std::endl;
-            for(int i = 0; i < max_density; i++){
-                ofs << tf[i] << " ";
-            }
-            std::cout << std::endl;
-            return tf;
-        };
+        std::vector<float> tf(256);
+        int seg = 0;
+        for(int i = 0; i < 256; ++i){
+            while(seg + 1 < (int) pts.size() && i > pts[seg + 1].intensity)
+                ++seg;
+            int   x0 = pts[seg].intensity, x1 = pts[seg + 1].intensity;
+            float y0 = pts[seg].value, y1 = pts[seg + 1].value;
+            float t = (x1 == x0) ? 0.0f : float(i - x0) / float(x1 - x0);
+            float v = (1.0f - t) * y0 + t * y1;
+            tf[i] = v;    
+        }
 
-        tf_r = processChannel(redPoints, "Red");
-        tf_g = processChannel(greenPoints, "Green");
-        tf_b = processChannel(bluePoints, "Blue");
-        tf_alp = processChannel(alphaPoints, "Alpha");
-    }
+        // ofs << 256 << "\n";
+        // for(float f : tf) ofs << f << " ";
+        // ofs << std::endl;
+
+        return tf;
+    };
+
+    tf_r = processChannel(redPoints, "Red");
+    tf_g = processChannel(greenPoints, "Green");
+    tf_b = processChannel(bluePoints, "Blue");
+    tf_alp = processChannel(alphaPoints, "Alpha");
+    // }
+
+    // ... 后面不变
 
 
     ImGui::Dummy(canvasSize);

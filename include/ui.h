@@ -27,6 +27,7 @@ static std::vector<ChannelPoint> redPoints = {
 };
 static std::vector<ChannelPoint> greenPoints = {
     {0, 0.0f},
+    // {128, 0.0f},
     {255, 0.0f}
 };
 static std::vector<ChannelPoint> bluePoints = {

@@ -1,7 +1,5 @@
 #include "volume.h"
 #include "reader.h"
-#include "MarchingCubesTables.hpp"
-#include "MarchingTetrahedraTables.hpp"
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
