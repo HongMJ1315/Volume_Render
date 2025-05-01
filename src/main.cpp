@@ -174,8 +174,6 @@ int main(int argc, char **argv){
 
     init_data();
 
-    int shaderProgram = set_shaders("shader/phong.vert", "shader/phong.frag");
-
     glm::mat4 model = glm::mat4(1.0f);
 
     glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
@@ -185,7 +183,31 @@ int main(int argc, char **argv){
     int cell_size = 1;
     float gamma = 0.5;
     int threadhold = 1;
-    std::cout << "All done" << std::endl;
+
+    // 建立覆蓋全螢幕的四邊形 (full-screen quad)
+    float quadVertices[] = {
+        // 位置 (x, y)
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+        -1.0f,  1.0f,
+        -1.0f,  1.0f,
+         1.0f, -1.0f,
+         1.0f,  1.0f
+    };
+    GLuint quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+
+    std::vector<float> tf_r, tf_g, tf_b, tf_alp;
+
     while(!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -202,29 +224,13 @@ int main(int argc, char **argv){
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
 
         input_window(camera_pos, camera_front, volume, data, m, k, threadhold, gamma, cell_size);
         histogram_window(volume, cell_size);
-        line_editor_winodw(volume.get_distribute().size());
-        glUseProgram(shaderProgram);
-
-        glm::mat4 view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float) width / height, 0.1f, 2000.0f);
-
-        GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
-        GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-        GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-        GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
-        GLint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
-        GLint lightColorLoc = glGetUniformLocation(shaderProgram, "lightColor");
-        GLint objectColorLoc = glGetUniformLocation(shaderProgram, "objectColor");
-        glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
-        glUniform3fv(viewPosLoc, 1, glm::value_ptr(camera_pos));
-        glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
+        line_editor_winodw(volume.get_distribute().size(), tf_r, tf_g, tf_b, tf_alp);
 
 
         ImGui::Render();

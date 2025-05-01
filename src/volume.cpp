@@ -127,7 +127,7 @@ std::vector<int> Volume::get_distribute(){
 }
 
 void Volume::compute_histogram2d(int M, int K){
-    histogram2d.assign(M, std::vector<int>(K, 0));
+    histogram2d.assign(K, std::vector<int>(M, 0));
 
     // 先算出非零值的 min/max
     float minVal = 1e30f, maxVal = -1e30f;
@@ -164,7 +164,7 @@ void Volume::compute_histogram2d(int M, int K){
                 int bin_val = std::min(int((val - minVal) / rangeVal * M), M - 1);
                 float norm_g = (grad - minGrad) / rangeGrad;
                 int bin_grad = std::min(int(norm_g * K), K - 1);
-                histogram2d[bin_val][bin_grad]++;
+                histogram2d[bin_grad][bin_val]++;
             }
         }
     }
@@ -172,8 +172,8 @@ void Volume::compute_histogram2d(int M, int K){
     // (可選) debug 打印
     long long totalCount = 0;
     int       maxBinCnt = 0;
-    for(int i = 0; i < M; i++){
-        for(int j = 0; j < K; j++){
+    for(int i = 0; i < K; i++){
+        for(int j = 0; j < M; j++){
             totalCount += histogram2d[i][j];
             maxBinCnt = std::max(maxBinCnt, histogram2d[i][j]);
         }

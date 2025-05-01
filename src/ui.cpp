@@ -1,14 +1,15 @@
 #include "ui.h"
 
 #define PIXEL_SIZE 1
-void line_editor_winodw(int max_density){
+void line_editor_winodw(int max_density, std::vector<float> &tf_r, std::vector<float> &tf_g, std::vector<float> &tf_b, std::vector<float> &tf_alp){
     // 建立一個視窗
     ImGui::Begin("RGB Transfer Function");
 
     static int currentChannel = 0; // 0=red, 1=green, 2=blue
     ImGui::RadioButton("Red", &currentChannel, 0); ImGui::SameLine();
     ImGui::RadioButton("Green", &currentChannel, 1); ImGui::SameLine();
-    ImGui::RadioButton("Blue", &currentChannel, 2);
+    ImGui::RadioButton("Blue", &currentChannel, 2); ImGui::SameLine();
+    ImGui::RadioButton("Alpha", &currentChannel, 3);
 
     ImVec2 canvasSize(400, 250);
     ImGui::InvisibleButton("canvas", canvasSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
@@ -35,10 +36,11 @@ void line_editor_winodw(int max_density){
         std::vector<ChannelPoint> *pts;
         ImU32 color;
     };
-    ChannelData channels[3] = {
+    ChannelData channels[4] = {
         { &redPoints,   IM_COL32(255, 0, 0, 255) },
         { &greenPoints, IM_COL32(0, 255, 0, 255) },
-        { &bluePoints,  IM_COL32(0, 0, 255, 255) }
+        { &bluePoints,  IM_COL32(0, 0, 255, 255) },
+        { &alphaPoints,  IM_COL32(150, 150, 150, 255) }
     };
 
     auto buildPolyline = [&](ChannelData &ch){
@@ -54,7 +56,7 @@ void line_editor_winodw(int max_density){
         return linePts;
     };
 
-    for(int c = 0; c < 3; c++){
+    for(int c = 0; c < 4; c++){
         auto linePts = buildPolyline(channels[c]);
         if(linePts.size() > 1){
             drawList->AddPolyline(linePts.data(), (int) linePts.size(), channels[c].color, false, 2.0f);
@@ -75,7 +77,7 @@ void line_editor_winodw(int max_density){
 
     if(canvasHovered){
         const float hitThreshold = 10.0f; // 感應半徑
-        for(int c = 0; c < 3; c++){
+        for(int c = 0; c < 4; c++){
             auto &pts = *(channels[c].pts);
             for(int i = 0; i < (int) pts.size(); i++){
                 ImVec2 pCanvas = toCanvas(pts[i].intensity, pts[i].value);
@@ -146,7 +148,7 @@ void line_editor_winodw(int max_density){
 
 
     const float pointRadius = 4.0f;
-    for(int c = 0; c < 3; c++){
+    for(int c = 0; c < 4; c++){
         auto &pts = *(channels[c].pts);
         ImU32 col = channels[c].color;
         for(int i = 0; i < (int) pts.size(); i++){
@@ -177,9 +179,9 @@ void line_editor_winodw(int max_density){
             std::cout << "\n";
 
             // 3. 線性內插、並 scale 到 [0, max_density]
-            std::vector<int> tf(256);
+            std::vector<float> tf(max_density);
             int seg = 0;
-            for(int i = 0; i < 256; i++){
+            for(int i = 0; i < max_density; i++){
                 // 找當前段落 seg, seg+1 使得 intensity[seg] <= i <= intensity[seg+1]
                 while(seg + 1 < (int) pts.size() && i > pts[seg + 1].intensity)
                     seg++;
@@ -188,20 +190,24 @@ void line_editor_winodw(int max_density){
                 float t = (x1 == x0) ? 0.0f : (float) (i - x0) / (float) (x1 - x0);
                 float v = (1.0f - t) * y0 + t * y1;
                 int   iv = static_cast<int>(std::round(v * max_density));
-                tf[i] = std::clamp(iv, 0, max_density);
+                std::cout << x0 << " " << y0 << " " << t << " " << v << " " << iv << std::endl;
+                tf[i] = iv / 255;
             }
 
             // 4. 輸出整條 Transfer Function
             std::cout << name << " TF (0～255 -> 0～" << max_density << "):\n";
             ofs << max_density << std::endl;
-            for(int i = 0; i < 256; i++){
-                ofs << tf[i] << (i + 1 < 256 ? " " : "\n");
+            for(int i = 0; i < max_density; i++){
+                ofs << tf[i] << " ";
             }
+            std::cout << std::endl;
+            return tf;
         };
 
-        processChannel(redPoints, "Red");
-        processChannel(greenPoints, "Green");
-        processChannel(bluePoints, "Blue");
+        tf_r = processChannel(redPoints, "Red");
+        tf_g = processChannel(greenPoints, "Green");
+        tf_b = processChannel(bluePoints, "Blue");
+        tf_alp = processChannel(alphaPoints, "Alpha");
     }
 
 
