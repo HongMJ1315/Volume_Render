@@ -36,8 +36,13 @@ static std::vector<ChannelPoint> alphaPoints = {
     {0, 0.0f},
     {255, 0.0f}
 };
-void line_editor_winodw(int max_density, std::vector<float> &, std::vector<float> &, std::vector<float> &, std::vector<float> &);
+// void line_editor_winodw(int max_density, std::vector<float> &, std::vector<float> &, std::vector<float> &, std::vector<float> &);
 void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size);
-void histogram_window(Volume &volume, int &cell_size);
-
+// void histogram_window(Volume &volume, int &cell_size);
+void HistogramTFEditor(Volume &volume,
+    std::vector<float> &tf_r,
+    std::vector<float> &tf_g,
+    std::vector<float> &tf_b,
+    std::vector<float> &tf_alp,
+    int cell_size);
 #endif // UI_H

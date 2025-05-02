@@ -46,7 +46,7 @@ bool mouse_captured = false;
 void mouse_button_callback(GLFWwindow *window, int button, int action, int mods){
 
     ImGuiIO &io = ImGui::GetIO();
-    if(io.WantCaptureMouse) 
+    if(io.WantCaptureMouse)
         return;
 
     if(button == GLFW_MOUSE_BUTTON_LEFT)
@@ -276,12 +276,12 @@ int main(int argc, char **argv){
         glBindVertexArray(0);
 
         input_window(camera_pos, camera_front, volume, data, m, k, threadhold, gamma, cell_size);
-        histogram_window(volume, cell_size);
-        line_editor_winodw(volume.get_distribute().size(), tf_r, tf_g, tf_b, tf_alp);
+        // histogram_window(volume, cell_size);
+        // line_editor_winodw(volume.get_distribute().size(), tf_r, tf_g, tf_b, tf_alp);
         // for(int i = 0; i < tf_r.size(); i++)
         //     std::cout << tf_r[i] << " " << tf_g[i] << " " << tf_b[i] << " " << tf_alp[i] << std::endl;
         // std::cout << tf_r.size() << " " << tf_g.size() << " " << tf_b.size() << " " << tf_alp.size() << std::endl;
-
+        HistogramTFEditor(volume, tf_r, tf_g, tf_b, tf_alp, cell_size);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

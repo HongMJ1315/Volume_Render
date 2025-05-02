@@ -1,6 +1,9 @@
 #include "ui.h"
+#include <numeric>
 
 #define PIXEL_SIZE 1
+
+/*
 void line_editor_winodw(int max_density, std::vector<float> &tf_r, std::vector<float> &tf_g, std::vector<float> &tf_b, std::vector<float> &tf_alp){
     // 建立一個視窗
     ImGui::Begin("RGB Transfer Function");
@@ -200,15 +203,12 @@ void line_editor_winodw(int max_density, std::vector<float> &tf_r, std::vector<f
     tf_g = processChannel(greenPoints, "Green");
     tf_b = processChannel(bluePoints, "Blue");
     tf_alp = processChannel(alphaPoints, "Alpha");
-    // }
-
-    // ... 后面不变
-
 
     ImGui::Dummy(canvasSize);
 
     ImGui::End();
 }
+//*/
 
 void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size){
     ImGui::Begin("Input Window");
@@ -235,7 +235,7 @@ void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume
     ImGui::End();
 }
 
-
+/*
 void histogram_window(Volume &volume, int &cell){
     ImGui::Begin("Histogram2D Viewer");
     std::vector<std::vector<int>> histogram2D = volume.get_histogram2d();
@@ -308,6 +308,223 @@ void histogram_window(Volume &volume, int &cell){
 
 
     ImGui::Dummy(ImVec2(M * cell_size, M * cell_size + 10));
+
+    ImGui::End();
+}
+// */
+void HistogramTFEditor(Volume &volume,
+    std::vector<float> &tf_r,
+    std::vector<float> &tf_g,
+    std::vector<float> &tf_b,
+    std::vector<float> &tf_alp,
+    int cell_size){
+    ImGui::Begin("Histogram & Transfer Function");
+
+    // 1. Load 2D histogram
+    auto hist2D = volume.get_histogram2d();  // M x K
+    int M = (int) hist2D.size();
+    int K = M > 0 ? (int) hist2D[0].size() : 0;
+    int maxFreq = 0;
+    for(int i = 0; i < M; ++i)
+        for(int j = 0; j < K; ++j)
+            maxFreq = std::max(maxFreq, hist2D[i][j]);
+
+    // 2. Compute marginal 1D histograms and cumulative distributions
+    std::vector<int> hist1D_x(K, 0), hist1D_y(M, 0);
+    for(int i = 0; i < M; ++i){
+        for(int j = 0; j < K; ++j){
+            hist1D_x[j] += hist2D[i][j];
+            hist1D_y[i] += hist2D[i][j];
+        }
+    }
+    float sum_x = std::accumulate(hist1D_x.begin(), hist1D_x.end(), 0.0f);
+    float sum_y = std::accumulate(hist1D_y.begin(), hist1D_y.end(), 0.0f);
+    std::vector<float> cum_x(K, 0.0f), cum_y(M, 0.0f);
+    float acc = 0.0f;
+    for(int j = 0; j < K; ++j){
+        acc += sum_x > 0 ? hist1D_x[j] / sum_x : 0.0f;
+        cum_x[j] = acc;
+    }
+    acc = 0.0f;
+    for(int i = 0; i < M; ++i){
+        acc += sum_y > 0 ? hist1D_y[i] / sum_y : 0.0f;
+        cum_y[i] = acc;
+    }
+
+    // 3. Create canvas
+    ImVec2 canvasSize((float) K * cell_size, (float) M * cell_size);
+    ImGui::InvisibleButton("canvas", canvasSize,
+        ImGuiButtonFlags_MouseButtonLeft |
+        ImGuiButtonFlags_MouseButtonRight);
+    ImVec2 origin = ImGui::GetItemRectMin();
+    ImVec2 canvasEnd = ImGui::GetItemRectMax();
+    ImDrawList *dl = ImGui::GetWindowDrawList();
+
+    // 4. Draw grayscale background
+    for(int i = 0; i < M; ++i){
+        for(int j = 0; j < K; ++j){
+            float norm = maxFreq > 0 ? (float) hist2D[i][j] / maxFreq : 0.0f;
+            int gray = 255 - (int) (norm * 255.0f);
+            ImU32 col = IM_COL32(gray, gray, gray, 255);
+            ImVec2 p0(origin.x + j * cell_size,
+                origin.y + i * cell_size);
+            ImVec2 p1(p0.x + cell_size, p0.y + cell_size);
+            dl->AddRectFilled(p0, p1, col);
+        }
+    }
+
+
+    // Draw CDF on horizontal axis (X marginal)
+    if(K > 0){
+        std::vector<ImVec2> polyX;
+        polyX.reserve(K);
+        for(int j = 0; j < K; ++j){
+            float x = origin.x + j * cell_size + cell_size * 0.5f;
+            float y = origin.y + canvasSize.y - cum_x[j] * canvasSize.y;
+            polyX.emplace_back(x, y);
+        }
+        dl->AddPolyline(polyX.data(), (int) polyX.size(), IM_COL32(255, 255, 0, 200), false, 2.0f);
+    }
+    // Draw CDF on vertical axis (Y marginal)
+    if(M > 0){
+        std::vector<ImVec2> polyY;
+        polyY.reserve(M);
+        for(int i = 0; i < M; ++i){
+            float x = origin.x + cum_y[i] * canvasSize.x;
+            float y = origin.y + i * cell_size + cell_size * 0.5f;
+            polyY.emplace_back(x, y);
+        }
+        dl->AddPolyline(polyY.data(), (int) polyY.size(), IM_COL32(0, 255, 255, 200), false, 2.0f);
+    }
+    if(K > 0){
+        std::vector<ImVec2> polyX;
+        polyX.reserve(K);
+        for(int j = 0; j < K; ++j){
+            float x = origin.x + j * cell_size + cell_size * 0.5f;
+            float y = origin.y + canvasSize.y - cum_x[j] * canvasSize.y;
+            polyX.emplace_back(x, y);
+        }
+        dl->AddPolyline(polyX.data(), (int) polyX.size(), IM_COL32(255, 255, 0, 200), false, 2.0f);
+    }
+    if(M > 0){
+        std::vector<ImVec2> polyY;
+        polyY.reserve(M);
+        for(int i = 0; i < M; ++i){
+            float x = origin.x + cum_y[i] * canvasSize.x;
+            float y = origin.y + i * cell_size + cell_size * 0.5f;
+            polyY.emplace_back(x, y);
+        }
+        dl->AddPolyline(polyY.data(), (int) polyY.size(), IM_COL32(0, 255, 255, 200), false, 2.0f);
+    }
+
+    // 6. Prepare TF editing on same canvas
+    auto toCanvasTF = [&](int intensity, float value){
+        float x = origin.x + (intensity / 255.0f) * canvasSize.x;
+        float y = origin.y + canvasSize.y - value * canvasSize.y;
+        return ImVec2(x, y);
+    };
+    struct ChannelPoint{ int intensity; float value; };
+    static std::vector<ChannelPoint> redPts, greenPts, bluePts, alphaPts;
+    struct Ch{ std::vector<ChannelPoint> *pts; ImU32 col; };
+    Ch channels[4] = {
+        { &redPts, IM_COL32(255,0,0,255) },
+        { &greenPts, IM_COL32(0,255,0,255) },
+        { &bluePts, IM_COL32(0,0,255,255) },
+        { &alphaPts, IM_COL32(150,150,150,255) }
+    };
+    // Draw TF polylines and points
+    for(int c = 0; c < 4; ++c){
+        auto &pts = *channels[c].pts;
+        std::sort(pts.begin(), pts.end(), [](auto &a, auto &b){return a.intensity < b.intensity; });
+        if(pts.size() > 1){
+            std::vector<ImVec2> poly;
+            poly.reserve(pts.size());
+            for(auto &p : pts) poly.push_back(toCanvasTF(p.intensity, p.value));
+            dl->AddPolyline(poly.data(), (int) poly.size(), channels[c].col, false, 2.0f);
+        }
+        for(auto &p : pts){
+            ImVec2 pc = toCanvasTF(p.intensity, p.value);
+            dl->AddCircleFilled(pc, 4.0f, channels[c].col);
+        }
+    }
+    // Interaction logic (drag, delete, add)... (same as before)
+    static int currentChan = 0, activeChan = -1, activeIdx = -1;
+    static bool dragging = false;
+    bool hovered = ImGui::IsItemHovered();
+    ImVec2 mpos = ImGui::GetIO().MousePos;
+    int nearChan = -1, nearIdx = -1;
+    float minDist = FLT_MAX;
+    if(hovered){
+        const float rad = 10.0f;
+        for(int c = 0; c < 4; ++c){
+            auto &pts = *channels[c].pts;
+            for(int i = 0; i < (int) pts.size(); ++i){
+                ImVec2 pc = toCanvasTF(pts[i].intensity, pts[i].value);
+                float dx = mpos.x - pc.x, dy = mpos.y - pc.y;
+                float d = sqrtf(dx * dx + dy * dy);
+                if(d < rad && d < minDist){ minDist = d; nearChan = c; nearIdx = i; }
+            }
+        }
+    }
+    if(hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right)){
+        if(nearChan >= 0 && nearIdx >= 0){
+            auto &pts = *channels[nearChan].pts;
+            if(nearIdx > 0 && nearIdx + 1 < (int) pts.size()) pts.erase(pts.begin() + nearIdx);
+        }
+    }
+    if(hovered && ImGui::IsMouseDown(ImGuiMouseButton_Left)){
+        if(!dragging){
+            if(nearChan >= 0 && nearIdx >= 0){ dragging = true; activeChan = nearChan; activeIdx = nearIdx; }
+            else{
+                auto &pts = *channels[currentChan].pts;
+                float ni = (mpos.x - origin.x) / canvasSize.x * 255.0f;
+                float nv = (canvasEnd.y - mpos.y) / canvasSize.y;
+                ni = std::clamp(ni, 0.0f, 255.0f);
+                nv = std::clamp(nv, 0.0f, 1.0f);
+                pts.push_back({ (int) ni,nv });
+            }
+        }
+        else{
+            auto &pts = *channels[activeChan].pts;
+            if(activeIdx >= 0 && activeIdx < (int) pts.size()){
+                float ni = (mpos.x - origin.x) / canvasSize.x * 255.0f;
+                float nv = (canvasEnd.y - mpos.y) / canvasSize.y;
+                ni = std::clamp(ni, 0.0f, 255.0f);
+                nv = std::clamp(nv, 0.0f, 1.0f);
+                if(activeIdx == 0) ni = 0.0f;
+                if(activeIdx == (int) pts.size() - 1) ni = 255.0f;
+                pts[activeIdx].intensity = (int) ni;
+                pts[activeIdx].value = nv;
+            }
+        }
+    }
+    else{ dragging = false; activeChan = activeIdx = -1; }
+    // Channel selection
+    ImGui::RadioButton("Red", &currentChan, 0); ImGui::SameLine();
+    ImGui::RadioButton("Green", &currentChan, 1); ImGui::SameLine();
+    ImGui::RadioButton("Blue", &currentChan, 2); ImGui::SameLine();
+    ImGui::RadioButton("Alpha", &currentChan, 3);
+
+    // 7. Real-time interpolation to tf vectors
+    auto process = [&](std::vector<ChannelPoint> &pts)->std::vector<float>{
+        std::sort(pts.begin(), pts.end(), [](auto &a, auto &b){ return a.intensity < b.intensity; });
+        if(pts.empty() || pts.front().intensity != 0) pts.insert(pts.begin(), { 0,pts.empty() ? 0.0f : pts.front().value });
+        if(pts.back().intensity != 255) pts.push_back({ 255,pts.back().value });
+        std::vector<float> tf(256);
+        int seg = 0;
+        for(int i = 0; i < 256; ++i){
+            while(seg + 1 < (int) pts.size() && i > pts[seg + 1].intensity) seg++;
+            int x0 = pts[seg].intensity, x1 = pts[seg + 1].intensity;
+            float y0 = pts[seg].value, y1 = pts[seg + 1].value;
+            float t = x1 == x0 ? 0.0f : (i - x0) / float(x1 - x0);
+            tf[i] = (1.0f - t) * y0 + t * y1;
+        }
+        return tf;
+    };
+    tf_r = process(redPts);
+    tf_g = process(greenPts);
+    tf_b = process(bluePts);
+    tf_alp = process(alphaPts);
 
     ImGui::End();
 }
