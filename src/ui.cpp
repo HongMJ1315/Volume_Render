@@ -214,9 +214,7 @@ void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume
     ImGui::Begin("Input Window");
     ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camera_pos.x, camera_pos.y, camera_pos.z);
     ImGui::Text("Camera Front Position: (%.2f, %.2f, %.2f)", camera_front.x, camera_front.y, camera_front.z);
-    std::vector<int> d = volume.get_distribute();
-    std::vector<float> fd;
-    for(auto i : d) fd.push_back(i);
+    std::vector<float> fd = volume.get_distribute();
     ImVec2 graph_size = ImVec2(0, 80);
     ImGui::PlotHistogram("Density distribution", fd.data(), fd.size(), 0, nullptr, FLT_MAX, FLT_MAX, graph_size);
     ImGui::InputInt("M", &m);
@@ -228,7 +226,7 @@ void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume
     ImGui::InputInt("Threadhold", &threadhold);
     ImGui::InputInt("Cell Size", &cell_size);
     if(ImGui::Button("Reset Data")){
-        volume = Volume(data, volume.length, volume.width, volume.height, gamma, threadhold);
+        volume = Volume(data, volume.length, volume.width, volume.height);
         m = volume.get_distribute().size() - 1;
         volume.compute_gradient(1.0f, 255.0f);
         volume.compute_histogram2d(m, k);

@@ -14,13 +14,11 @@
 #include <utility>
 #include <iostream>
 #include <fstream>      
-// 單一「通道」的折點
 struct ChannelPoint{
-    int intensity; // X 軸，範圍 [0, 255]
-    float value;     // Y 軸，範圍 [0, 1]
+    int intensity; 
+    float value;    
 };
 
-// 三條線的控制點，全域或放在別處皆可
 static std::vector<ChannelPoint> redPoints = {
     {0, 0.0f},
     {255, 0.0f}

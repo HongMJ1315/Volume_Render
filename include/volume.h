@@ -13,15 +13,15 @@ class Volume{
 private:
     std::vector<std::vector<std::vector<float> > > data;
     std::vector<std::vector<std::vector<float>>> gradient_magnitude;
-    std::vector<int> distribute;
+    std::vector<float> distribute;
     std::vector<std::vector<int>> histogram2d;
     public:
     int length, width, height;
     Volume();
-    Volume(std::vector<unsigned char> &data, int length, int width, int height, float gamma = 1.0f, int threadshold = 1000);
+    Volume(std::vector<unsigned char> &data, int length, int width, int height);
     ~Volume();
     void compute_gradient(float g_min, float g_max);
-    std::vector<int> get_distribute();
+    std::vector<float> get_distribute();
     void compute_histogram2d(int M, int K);
     std::vector<std::vector<int>> get_histogram2d();
 };

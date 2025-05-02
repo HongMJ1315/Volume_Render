@@ -21,11 +21,7 @@
 int width = 800;
 int height = 600;
 
-// -------------------- Camera 全域變數 --------------------
-// -----------------------------------------------------------------
-// 摄像机轨道控制（Orbit）用的全局变量
-// -----------------------------------------------------------------
-float yaw = glm::pi<float>() * 0.5f;  // 初始绕 Y 轴 90°
+float yaw = glm::pi<float>() * 0.5f;
 float pitch = 0.0f;
 float radius = 20.0f;
 double lastX = width * 0.5;
@@ -35,9 +31,7 @@ glm::vec3 camera_pos, camera_front;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-// --------------------------------------------------------
 
-// 宣告一個 future 用來接收背景線程計算的結果（回傳兩個 surface）
 #define MOVE_SPEED 10.f
 #define ROTATE_SPEED 2.0f
 
@@ -59,7 +53,6 @@ void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
         leftPressed = (action == GLFW_PRESS);
 }
 
-// 鼠标移动时更新 yaw/pitch
 void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos){
     if(leftPressed){
         float xoffset = float(xpos - lastX);
@@ -67,14 +60,12 @@ void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos){
         const float sensitivity = 0.005f;
         yaw += xoffset * sensitivity;
         pitch += yoffset * sensitivity;
-        // 限制俯仰角不要翻顶
         pitch = glm::clamp(pitch, -glm::half_pi<float>() + 0.1f, glm::half_pi<float>() - 0.1f);
     }
     lastX = xpos;
     lastY = ypos;
 }
 
-// 滚轮缩放
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset){
     radius = glm::clamp(radius - float(yoffset), 1.0f, 100.0f);
 }
@@ -86,33 +77,26 @@ void reshape(GLFWwindow *window, int w, int h){
     glViewport(0, 0, width, height);
 }
 
-// 2) 把 updateTransferFunc 改成動態長度版本：
 void updateTransferFunc(
     const std::vector<float> &r,
     const std::vector<float> &g,
     const std::vector<float> &b,
     const std::vector<float> &a){
-    // 四個 vector 長度要一致：
     size_t N = r.size();
     if(g.size() != N || b.size() != N || a.size() != N) return;
 
-    // 組成 N×4 的 GLubyte buffer：
     std::vector<GLubyte> buf(N * 4);
     for(size_t i = 0; i < N; ++i){
         buf[4 * i + 0] = static_cast<GLubyte>(glm::clamp(r[i], 0.0f, 1.0f) * 255);
         buf[4 * i + 1] = static_cast<GLubyte>(glm::clamp(g[i], 0.0f, 1.0f) * 255);
         buf[4 * i + 2] = static_cast<GLubyte>(glm::clamp(b[i], 0.0f, 1.0f) * 255);
         buf[4 * i + 3] = static_cast<GLubyte>(glm::clamp(a[i], 0.0f, 1.0f) * 255);
-        // std::cout << r[i] << " " << g[i] << " " << b[i] << " " << a[i] << std::endl;
-        // std::cout << buf[4 * i + 0] << " " << buf[4 * i + 1] << " " << buf[4 * i + 2] << " " << buf[4 * i + 3] << std::endl;
     }
 
-    // 直接用 glTexImage1D 重新上傳動態長度：
-    // std::cout << "update trans tex" << std::endl;
     glBindTexture(GL_TEXTURE_1D, trans_tex);
     glTexImage1D(GL_TEXTURE_1D, 0,
-        GL_RGBA,           // internal format
-        (GLsizei) N,        // 動態長度
+        GL_RGBA,
+        (GLsizei) N,
         0, GL_RGBA,
         GL_UNSIGNED_BYTE,
         buf.data());
@@ -128,14 +112,13 @@ GLsizei vertCount1, vertCount2;
 void init_data(){
     read("Scalar/testing_engine.raw", "Scalar/testing_engine.inf", data);
 
-    volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID, 0.5, 0);
+    volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID);
     volume.compute_gradient(1.0f, 255.0f);
     volume.compute_histogram2d(256, 256);
 }
 
 
 int main(int argc, char **argv){
-    // 初始化
     glutInit(&argc, argv);
     if(!glfwInit()){
         return -1;
@@ -154,7 +137,6 @@ int main(int argc, char **argv){
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
     glfwSetScrollCallback(window, scroll_callback);
-    // 初始把 lastX/lastY 设成窗口中心
     lastX = width * 0.5;
     lastY = height * 0.5;
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -222,7 +204,7 @@ int main(int argc, char **argv){
 
     int m = 255, k = 255;
     int cell_size = 1;
-    float gamma = 0.5;
+    float gamma = 1;
     int threadhold = 1;
 
     // 建立覆蓋全螢幕的四邊形 (full-screen quad)
@@ -253,35 +235,30 @@ int main(int argc, char **argv){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // process_input(window);
         glfwPollEvents();
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // ImGui 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 先算 mat
         float camX = radius * cos(pitch) * cos(yaw);
         float camY = radius * sin(pitch);
         float camZ = radius * cos(pitch) * sin(yaw);
         camera_pos = glm::vec3(camX, camY, camZ);
-        camera_front = glm::normalize(-camera_pos);   // 看向原点
+        camera_front = glm::normalize(-camera_pos);
         glm::mat4 proj = glm::perspective(glm::radians(45.0f),
             (float) width / height, 0.1f, 1000.0f);
         glm::mat4 view = glm::lookAt(camera_pos,
-            glm::vec3(0.0f),   // 环绕到原点
+            glm::vec3(0.0f),
             glm::vec3(0.0f, 1.0f, 0.0f));
 
         glm::mat4 invVP = glm::inverse(proj * view);
 
-        // 更新 TF
         updateTransferFunc(tf_r, tf_g, tf_b, tf_alp);
 
-        // 啟用 ray-casting shader
         glUseProgram(shader);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_3D, data_tex);
@@ -294,7 +271,6 @@ int main(int argc, char **argv){
             1, GL_FALSE, &invVP[0][0]);
         glUniform1f(glGetUniformLocation(shader, "stepSize"), 1.0f / 500.0f);
 
-        // 畫 full-screen quad
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
