@@ -82,15 +82,19 @@ Volume::~Volume(){
 
 void Volume::compute_gradient(float g_min, float g_max){
     gradient_magnitude.resize(length, std::vector<std::vector<float>>(width, std::vector<float>(height, 0.0f)));
+    gradient.resize(length, std::vector<std::vector<glm::vec3>>(width, std::vector<glm::vec3>(height, { 0,0,0 })));
 
+    float max_grdient = -1e9;
     for(int x = 1; x < length - 1; x++){
         for(int y = 1; y < width - 1; y++){
             for(int z = 1; z < height - 1; z++){
                 float dx = (data[x + 1][y][z] - data[x - 1][y][z]) / 2.0f;
                 float dy = (data[x][y + 1][z] - data[x][y - 1][z]) / 2.0f;
                 float dz = (data[x][y][z + 1] - data[x][y][z - 1]) / 2.0f;
+                gradient[x][y][z] = { dx, dy, dz };
 
                 float g = std::sqrt(dx * dx + dy * dy + dz * dz);
+                max_grdient = std::max(max_grdient, g);
 
                 if(g < g_min)
                     g = 2;
@@ -103,6 +107,10 @@ void Volume::compute_gradient(float g_min, float g_max){
             }
         }
     }
+    for(auto &i : gradient)
+        for(auto &j : i)
+            for(auto &k : j)
+                k /= max_grdient;
 }
 
 std::vector<float> Volume::get_distribute(){
@@ -120,7 +128,7 @@ void Volume::compute_histogram2d(int M, int K){
             for(int z = 1; z < height - 1; z++){
                 float val = data[x][y][z];
                 float grad = gradient_magnitude[x][y][z];
-                if(val == 0.0f) continue;     
+                if(val == 0.0f) continue;
 
                 minVal = std::min(minVal, val);
                 maxVal = std::max(maxVal, val);
@@ -140,7 +148,7 @@ void Volume::compute_histogram2d(int M, int K){
                 float val = data[x][y][z];
                 float grad = gradient_magnitude[x][y][z];
                 if(val == 0.0f) continue;
-                
+
                 int bin_val = std::min(int((val - minVal) / rangeVal * M), M - 1);
                 float norm_g = (grad - minGrad) / rangeGrad;
                 int bin_grad = std::min(int(norm_g * K), K - 1);

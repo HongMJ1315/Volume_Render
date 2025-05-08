@@ -12,7 +12,8 @@ class Volume{
     typedef unsigned char byte;
 private:
     std::vector<std::vector<std::vector<float> > > data;
-    std::vector<std::vector<std::vector<float>>> gradient_magnitude;
+    std::vector<std::vector<std::vector<float> > > gradient_magnitude;
+    std::vector<std::vector<std::vector<glm::vec3> > > gradient;
     std::vector<float> distribute;
     std::vector<std::vector<int>> histogram2d;
     public:

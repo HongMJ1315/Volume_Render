@@ -39,7 +39,7 @@ float lastFrame = 0.0f;
 #define MODEL_HEI 256.0f
 #define MODEL_WID 256.0f
 
-GLuint shader = 0, data_tex = 0, trans_tex = 0;
+GLuint shader = 0, data_tex = 0, trans_tex = 0, gradient_tex = 0;
 
 bool mouse_captured = false;
 
@@ -169,38 +169,35 @@ int main(int argc, char **argv){
 
     init_data();
     shader = set_shaders("shader/volume.vs", "shader/volume.fs");
-    // 1) 在載入 Volume data 之後（或在 loadResources() 裡），補上 trans_tex 的初始化：
+
+
+    // Transfer Function Texture 
     glGenTextures(1, &trans_tex);
+
     glBindTexture(GL_TEXTURE_1D, trans_tex);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // 先放一個長度 1 的空貼圖，之後每 frame 以動態長度重新上傳：
     glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-    // 在 init_data() 之后、glTexImage3D 之前，添加：
 
+    // Volume Data Texture 
     glGenTextures(1, &data_tex);
+
     glBindTexture(GL_TEXTURE_3D, data_tex);
-    // 完善一下参数：
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    // 然后才上传真正的数据
+
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RED,
         MODEL_LEN, MODEL_HEI, MODEL_WID,
         0, GL_RED, GL_UNSIGNED_BYTE,
         data.data());
 
 
-
-    glm::mat4 model = glm::mat4(1.0f);
-
-    glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
-    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
     int m = 255, k = 255;
     int cell_size = 1;
@@ -211,11 +208,11 @@ int main(int argc, char **argv){
     float quadVertices[] = {
         // 位置 (x, y)
         -1.0f, -1.0f,
-         1.0f, -1.0f,
+        1.0f, -1.0f,
         -1.0f,  1.0f,
         -1.0f,  1.0f,
-         1.0f, -1.0f,
-         1.0f,  1.0f
+        1.0f, -1.0f,
+        1.0f,  1.0f
     };
     GLuint quadVAO, quadVBO;
     glGenVertexArrays(1, &quadVAO);
@@ -227,6 +224,17 @@ int main(int argc, char **argv){
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *) 0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+
+    
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
+    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+    glm::vec3 ambientColor(0.1f, 0.1f, 0.1f);
+
+    glUseProgram(shader);
+    glUniform3fv(glGetUniformLocation(shader, "lightPos"), 1, &lightPos[0]);
+    glUniform3fv(glGetUniformLocation(shader, "lightColor"), 1, &lightColor[0]);
+    glUniform3fv(glGetUniformLocation(shader, "ambientColor"), 1, &ambientColor[0]);
 
 
     std::vector<float> tf_r, tf_g, tf_b, tf_alp;
@@ -263,14 +271,17 @@ int main(int argc, char **argv){
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_3D, data_tex);
         glUniform1i(glGetUniformLocation(shader, "volumeTex"), 0);
+
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_1D, trans_tex);
-        glUniform1i(glGetUniformLocation(shader, "tfTex"), 1);
+        glUniform1i(glGetUniformLocation(shader, "tfTex"),  1);
+
         glUniform3fv(glGetUniformLocation(shader, "camPos"), 1, &camera_pos[0]);
         glUniformMatrix4fv(glGetUniformLocation(shader, "invViewProj"),
             1, GL_FALSE, &invVP[0][0]);
         glUniform1f(glGetUniformLocation(shader, "stepSize"), 1.0f / 500.0f);
 
+  
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
