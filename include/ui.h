@@ -15,8 +15,8 @@
 #include <iostream>
 #include <fstream>      
 struct ChannelPoint{
-    int intensity; 
-    float value;    
+    int intensity;
+    float value;
 };
 
 static std::vector<ChannelPoint> redPoints = {
@@ -37,7 +37,9 @@ static std::vector<ChannelPoint> alphaPoints = {
     {255, 0.0f}
 };
 // void line_editor_winodw(int max_density, std::vector<float> &, std::vector<float> &, std::vector<float> &, std::vector<float> &);
-void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size);
+void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front,
+    Volume &volume, std::vector<unsigned char> &data,
+    int &m, int &k, int &threadhold, float &gamma, int &cell_size, int &is_phong);
 // void histogram_window(Volume &volume, int &cell_size);
 void HistogramTFEditor(Volume &volume,
     std::vector<float> &tf_r,

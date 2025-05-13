@@ -189,7 +189,7 @@ void line_editor_winodw(int max_density, std::vector<float> &tf_r, std::vector<f
             float y0 = pts[seg].value, y1 = pts[seg + 1].value;
             float t = (x1 == x0) ? 0.0f : float(i - x0) / float(x1 - x0);
             float v = (1.0f - t) * y0 + t * y1;
-            tf[i] = v;    
+            tf[i] = v;
         }
 
         // ofs << 256 << "\n";
@@ -210,7 +210,9 @@ void line_editor_winodw(int max_density, std::vector<float> &tf_r, std::vector<f
 }
 //*/
 
-void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume, std::vector<unsigned char> &data, int &m, int &k, int &threadhold, float &gamma, int &cell_size){
+void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front,
+    Volume &volume, std::vector<unsigned char> &data,
+    int &m, int &k, int &threadhold, float &gamma, int &cell_size, int &is_phong){
     ImGui::Begin("Input Window");
     ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camera_pos.x, camera_pos.y, camera_pos.z);
     ImGui::Text("Camera Front Position: (%.2f, %.2f, %.2f)", camera_front.x, camera_front.y, camera_front.z);
@@ -231,6 +233,9 @@ void input_window(glm::vec3 &camera_pos, glm::vec3 &camera_front, Volume &volume
         volume.compute_gradient(1.0f, 255.0f);
         volume.compute_histogram2d(m, k);
     }
+    bool t = is_phong;
+    ImGui::Checkbox("Phong Shading", &t);
+    is_phong = t;
 
     ImGui::End();
 }
@@ -506,6 +511,7 @@ void HistogramTFEditor(Volume &volume,
     ImGui::RadioButton("Alpha", &currentChan, 3);
 
     // 7. Real-time interpolation to tf vectors
+    // /*
     auto process = [&](std::vector<ChannelPoint> &pts)->std::vector<float>{
         std::sort(pts.begin(), pts.end(), [](auto &a, auto &b){ return a.intensity < b.intensity; });
         if(pts.empty() || pts.front().intensity != 0) pts.insert(pts.begin(), { 0,pts.empty() ? 0.0f : pts.front().value });
@@ -521,6 +527,8 @@ void HistogramTFEditor(Volume &volume,
         }
         return tf;
     };
+    // */
+    
     tf_r = process(redPts);
     tf_g = process(greenPts);
     tf_b = process(bluePts);

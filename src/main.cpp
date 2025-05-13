@@ -18,8 +18,8 @@
 #include "volume.h"
 #include <future>
 
-int width = 800;
-int height = 600;
+int width = 1600;
+int height = 1200;
 
 float yaw = glm::pi<float>() * 0.5f;
 float pitch = 0.0f;
@@ -110,7 +110,7 @@ GLsizei vertCount1, vertCount2;
 
 
 void init_data(){
-    read("Scalar/testing_engine.raw", "Scalar/testing_engine.inf", data);
+    read("Scalar/skull.raw", "Scalar/skull.inf", data);
 
     volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID);
     volume.compute_gradient(1.0f, 255.0f);
@@ -225,11 +225,11 @@ int main(int argc, char **argv){
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
-    
+
     glm::mat4 model = glm::mat4(1.0f);
     glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-    glm::vec3 ambientColor(0.1f, 0.1f, 0.1f);
+    glm::vec3 ambientColor(0.6f, 0.6f, 0.6f);
 
     glUseProgram(shader);
     glUniform3fv(glGetUniformLocation(shader, "lightPos"), 1, &lightPos[0]);
@@ -238,6 +238,7 @@ int main(int argc, char **argv){
 
 
     std::vector<float> tf_r, tf_g, tf_b, tf_alp;
+    int is_phong = 0;
     while(!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -274,19 +275,20 @@ int main(int argc, char **argv){
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_1D, trans_tex);
-        glUniform1i(glGetUniformLocation(shader, "tfTex"),  1);
+        glUniform1i(glGetUniformLocation(shader, "tfTex"), 1);
 
         glUniform3fv(glGetUniformLocation(shader, "camPos"), 1, &camera_pos[0]);
         glUniformMatrix4fv(glGetUniformLocation(shader, "invViewProj"),
             1, GL_FALSE, &invVP[0][0]);
         glUniform1f(glGetUniformLocation(shader, "stepSize"), 1.0f / 500.0f);
+        glUniform1i(glGetUniformLocation(shader, "isPhong"), is_phong);
 
-  
+
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
-        input_window(camera_pos, camera_front, volume, data, m, k, threadhold, gamma, cell_size);
+        input_window(camera_pos, camera_front, volume, data, m, k, threadhold, gamma, cell_size, is_phong);
         // histogram_window(volume, cell_size);
         // line_editor_winodw(volume.get_distribute().size(), tf_r, tf_g, tf_b, tf_alp);
         // for(int i = 0; i < tf_r.size(); i++)

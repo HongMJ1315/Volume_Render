@@ -10,53 +10,51 @@ uniform vec3 lightColor;
 uniform vec3 ambientColor;
 uniform float stepSize;
 uniform mat4 invViewProj;
+uniform int isPhong;
 
 const float shininess = 32.0;
 
 void main(){
-    // 1) 重建 ray
     vec4 ndc   = vec4(TexCoord * 2.0 - 1.0, 0.0, 1.0);
     vec4 world = invViewProj * ndc; world /= world.w;
     vec3 dir = normalize(world.xyz - camPos);
 
-    // 2) 与单位盒相交
-    vec3 bmin=vec3(0), bmax=vec3(1), invD=1.0/dir;
+    vec3 bmin=vec3(-0.5), bmax=vec3(0.5), invD=1.0/dir;
     vec3 t0s=(bmin-camPos)*invD, t1s=(bmax-camPos)*invD;
     vec3 tminv=min(t0s,t1s), tmaxv=max(t0s,t1s);
     float tmin = max(max(tminv.x,tminv.y), max(tminv.z,0.0));
     float tmax = min(min(tmaxv.x,tmaxv.y), tmaxv.z);
     if(tmin>tmax) discard;
 
-    // 3) Ray Marching + Phong Shading
+    // Ray Marching + Phong Shading
     vec4 col = vec4(0.0);
+
     float t = tmin;
     for(int i=0; i<512; ++i){
         if(t>tmax || col.a>=0.95) break;
         vec3 pos = camPos + dir*t;
-        
-        // 3.1) 采样体数据和TF
-        float val = texture(volumeTex, pos).r;
+        vec3 tc  = pos + vec3(0.5); 
+        float val = texture(volumeTex, tc).r;
         vec4 samp = texture(tfTex, val);
-        samp.a *= 0.05;
+        samp.a *= 1;
 
-        // 3.2) 现场计算梯度近似法线
-        float d = stepSize * 1.5;
-        vec3 g;
-        g.x = texture(volumeTex, pos+vec3(d,0,0)).r - texture(volumeTex, pos-vec3(d,0,0)).r;
-        g.y = texture(volumeTex, pos+vec3(0,d,0)).r - texture(volumeTex, pos-vec3(0,d,0)).r;
-        g.z = texture(volumeTex, pos+vec3(0,0,d)).r - texture(volumeTex, pos-vec3(0,0,d)).r;
-        vec3 N = normalize(g);
+        if(isPhong == 1){
+            float d = stepSize * 1.5;
+            vec3 g;
+            g.x = texture(volumeTex, pos+vec3(d,0,0)).r - texture(volumeTex, pos-vec3(d,0,0)).r;
+            g.y = texture(volumeTex, pos+vec3(0,d,0)).r - texture(volumeTex, pos-vec3(0,d,0)).r;
+            g.z = texture(volumeTex, pos+vec3(0,0,d)).r - texture(volumeTex, pos-vec3(0,0,d)).r;
+            vec3 N = normalize(g);
 
-        // 3.3) Phong 计算
-        vec3 L = normalize(lightPos - pos);
-        vec3 V = normalize(camPos - pos);
-        vec3 H = normalize(L + V);
-        float diff = max(dot(N, L), 0.0);
-        float spec = pow(max(dot(N, H), 0.0), shininess);
-        vec3 phong = ambientColor + lightColor * (diff + spec);
-        samp.rgb *= phong;
+            vec3 L = normalize(lightPos - pos);
+            vec3 V = normalize(camPos - pos);
+            vec3 H = normalize(L + V);
+            float diff = max(dot(N, L), 0.0);
+            float spec = pow(max(dot(N, H), 0.0), shininess);
+            vec3 phong = ambientColor + lightColor * (diff + spec);
+            samp.rgb *= phong;
+        }
 
-        // 3.4) 前向累积
         col.rgb += (1.0 - col.a) * samp.a * samp.rgb;
         col.a   += (1.0 - col.a) * samp.a;
         t += stepSize;
