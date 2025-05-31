@@ -36,7 +36,7 @@ void main(){
         vec3 tc  = pos + vec3(0.5); 
         float val = texture(volumeTex, tc).r;
         vec4 samp = texture(tfTex, val);
-        samp.a *= 1;
+        samp.a *= 0.1;
 
         if(isPhong == 1){
             float d = stepSize * 1.5;

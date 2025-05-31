@@ -110,7 +110,7 @@ GLsizei vertCount1, vertCount2;
 
 
 void init_data(){
-    read("Scalar/skull.raw", "Scalar/skull.inf", data);
+    read("Scalar/testing_engine.raw", "Scalar/testing_engine.inf", data);
 
     volume = Volume(data, MODEL_LEN, MODEL_HEI, MODEL_WID);
     volume.compute_gradient(1.0f, 255.0f);
@@ -229,7 +229,7 @@ int main(int argc, char **argv){
     glm::mat4 model = glm::mat4(1.0f);
     glm::vec3 lightPos(300.0f, 300.0f, 600.0f);
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-    glm::vec3 ambientColor(0.6f, 0.6f, 0.6f);
+    glm::vec3 ambientColor(0.4f, 0.4f, 0.4f);
 
     glUseProgram(shader);
     glUniform3fv(glGetUniformLocation(shader, "lightPos"), 1, &lightPos[0]);

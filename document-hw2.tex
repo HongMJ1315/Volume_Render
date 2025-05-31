@@ -13,7 +13,7 @@
 
 \geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
 \pagestyle{fancy}
-\setCJKmainfont{Noto Sans CJK HK}
+\setCJKmainfont{Noto Sans TC}
 % 英文字體 consolas
 \setmonofont{Consolas}
 % 設定內文文字大小
@@ -21,11 +21,11 @@
 
 % 設定頁首
 \fancyhf{}
-\fancyhead[L]{Volume Rendering and Gradient Visualization}
+\fancyhead[L]{Volume Rendering and Gradient Visualization(HW2)}
 \fancyhead[R]{\today}
 \fancyfoot[C]{\thepage/\pageref{LastPage}}
 
-\title{Volume Rendering and Gradient Visualization}
+\title{Volume Rendering and Gradient Visualization(HW2)}
 \author{01057033洪銘均}
 \date{\today}
 
@@ -45,12 +45,10 @@
     \centering
     \includegraphics[width=0.8\textwidth]{img/img2.png}
 \end{figure}
-圖中縱軸為梯度值、橫軸為密度值，黃色為密度值累積、青色為梯度值累積，可以看到利用CDF映射後成功讓資料分散化，並且
+圖中縱軸為梯度值、橫軸為密度值，黃色為密度值累積、青色為梯度值累積，可以看到利用CDF映射後成功讓資料分散化，極值也利用CDF讓其值有所下降並且較為平滑。
 
 \section{心得}
-這次得作業實做牛頓2D的計算過程，牛頓法在上課時聽得沒很懂，也是到時做前才搞懂流程。在實做中利用到矩陣運算庫Eigen來完成部份矩陣操作包含反矩陣、矩陣乘法等。在視覺化上，我利用GLSL差值來完成函數和收斂點過程圖形的繪製，雖然一開始遇到線條粗細不一，特定情況下還會出現函數扭曲，但後來加上fwidth就成功修正這問題了。
-在後續也嘗試不同的函數來觀察收斂過程，雖然在過程中出現與預期收斂結果不同的情況，在偵錯過程中發現偏微分計算結果有問題，持續追查才發現是我函數初始格式錯誤，後續解決後也正常執行了。
-
+這次作業成功了解到利CDF映射作為equalizer，並成功讓極值下降，使整體趨勢較為平滑化，一開始使用Gamma校正、移除域值、以及刪除空缺的硬度值的方式，但效果校為不佳，且極值過大的問題依舊存在，使用CDF後才較為正常。
 \end{document}
 
 % xelatex  --max-print-line=10000 -synctex=1 -interaction=nonstopmode -file-line-error -recorder .\codebook.tex 
